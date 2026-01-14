@@ -1,0 +1,475 @@
+/* =========================================================
+   styles.css — Ring + 3D scene UI (Three.js)
+   - Canvas fullscreen
+   - Panel UI estilo “evento” (glass + neon)
+   - Responsive + accesibilidad + focus visible
+   - Sin interferir con el render
+   ========================================================= */
+
+/* En esta cabecera se deja claro que este CSS está pensado para una escena 3D con Three.js,
+   y que el objetivo es que el canvas ocupe toda la pantalla y el panel se vea con un estilo “neón”. */
+
+/* ---------- Reset / Base ---------- */
+/* Aquí se asegura que el box model sea consistente en todo (ancho/alto incluyendo padding y borde). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Aquí se pone el alto al 100% y se quitan márgenes/paddings para empezar desde cero sin “saltos” del navegador. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Aquí se guardan variables CSS para no repetir colores y medidas por todo el archivo. */
+
+  /* Colores */
+  --bg-0: #06070b; /* Fondo más oscuro para los extremos del degradado */
+  --bg-1: #0b0f14; /* Fondo principal base */
+  --bg-2: #0f1620; /* Tono extra por si se necesita en alguna capa */
+  --panel: rgba(10, 12, 16, 0.55); /* Fondo semitransparente para panel tipo “glass” */
+  --panel-2: rgba(12, 16, 22, 0.70); /* Variante más sólida para zonas del panel */
+  --border: rgba(255, 255, 255, 0.10); /* Borde sutil sin cantar demasiado */
+
+  --text: rgba(255, 255, 255, 0.92); /* Texto principal para buena legibilidad */
+  --muted: rgba(255, 255, 255, 0.70); /* Texto secundario */
+  --muted-2: rgba(255, 255, 255, 0.55); /* Texto todavía más suave */
+
+  --accent: #3b82f6; /* Color acento (azul) para destacar botones/estados */
+  --accent-2: #ff3b30; /* Segundo acento (rojo) para “stop” o alertas */
+  --ok: #10b981; /* Verde para estados correctos */
+  --warn: #f59e0b; /* Amarillo/naranja para avisos */
+
+  --shadow: 0 18px 40px rgba(0,0,0,.40); /* Sombra fuerte para levantar el panel */
+  --shadow-soft: 0 10px 22px rgba(0,0,0,.28); /* Sombra más suave para focus y detalles */
+
+  /* Tipografía */
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; /* Fuente estándar para que se vea “limpio” */
+
+  /* Radios */
+  --r-1: 10px; /* Radios para elementos pequeños */
+  --r-2: 14px; /* Radios intermedios */
+  --r-3: 18px; /* Radios grandes para el panel */
+
+  /* Espaciado */
+  --s-1: 8px;
+  --s-2: 12px;
+  --s-3: 16px;
+  --s-4: 20px;
+  --s-5: 24px;
+
+  /* Focus */
+  --focus: 0 0 0 3px rgba(59,130,246,.45); /* Halo para accesibilidad cuando se navega con teclado */
+}
+
+body {
+  /* Aquí se define el look general del fondo para que el canvas tenga un ambiente “espacial/escena” */
+  font-family: var(--font);
+  overflow: hidden; /* Se evita scroll porque el canvas es a pantalla completa */
+  color: var(--text);
+
+  /* Se mezclan varios fondos radiales + uno lineal para crear luces suaves tipo escenario */
+  background: radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,.18), transparent 55%),
+              radial-gradient(900px 500px at 80% 15%, rgba(255,59,48,.10), transparent 50%),
+              radial-gradient(900px 600px at 50% 85%, rgba(16,185,129,.08), transparent 55%),
+              linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-0));
+}
+
+/* Evita selección rara en botones/panel */
+/* Aquí se bloquea la selección de texto en el panel para que al clicar y arrastrar no se seleccione nada sin querer. */
+#ui,
+#ui * {
+  user-select: none;
+}
+
+/* ---------- Canvas (Three.js) ---------- */
+/* Aquí se deja el canvas ocupando toda la pantalla. */
+#c {
+  display: block; /* Se quitan huecos típicos de elementos inline */
+  width: 100vw;
+  height: 100vh;
+  outline: none; /* Se evita un borde de focus raro en algunos navegadores */
+}
+
+/* Si algún navegador no respeta el tamaño del canvas, forzamos */
+/* Aquí se deja claro que no se busca pixel-art, sino render normal. */
+canvas {
+  image-rendering: auto;
+}
+
+/* ---------- UI Panel ---------- */
+/* Aquí se posiciona el panel flotante encima del canvas sin romper la escena. */
+#ui {
+  position: absolute;
+  top: var(--s-4);
+  left: var(--s-4);
+  z-index: 10;
+
+  /* Se limita el ancho para que no sea enorme en pantallas grandes y no desborde en móvil. */
+  width: min(460px, calc(100vw - 32px));
+  padding: 14px 14px 12px;
+  border-radius: var(--r-3);
+  border: 1px solid var(--border);
+
+  /* Se mete un degradado suave para el efecto “glass” y se aplica blur detrás. */
+  background: linear-gradient(180deg, rgba(16,18,24,.70), rgba(10,12,16,.40));
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+
+/* “Barra” superior decorativa */
+/* Aquí se crea una línea de color arriba del panel para que parezca más “evento/neón”. */
+#ui::before {
+  content: "";
+  display: block;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    rgba(59,130,246,.90),
+    rgba(16,185,129,.65),
+    rgba(255,59,48,.80)
+  );
+  margin-bottom: 12px;
+  opacity: .85;
+}
+
+#ui h1 {
+  /* Aquí se ajusta el título para que sea compacto y no ocupe demasiado. */
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+}
+
+#ui h1 b {
+  /* Aquí se deja el bold más marcado si se usa dentro del título. */
+  font-weight: 800;
+}
+
+/* ---------- Rows ---------- */
+/* Aquí se controlan las filas de botones para que se adapten y hagan wrap si no caben. */
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.row:last-of-type {
+  /* Aquí se ajusta un poco el margen de la última fila para que el panel quede equilibrado. */
+  margin-bottom: 8px;
+}
+
+/* ---------- Buttons ---------- */
+/* Aquí se define el estilo base de todos los botones del panel. */
+button {
+  appearance: none; /* Se quita el estilo nativo para que se vea igual en todos lados */
+  border: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+
+  /* Sombra para dar sensación de “botón flotante”. */
+  box-shadow: 0 10px 18px rgba(0,0,0,.22);
+
+  /* Transiciones cortas para que el hover se note pero no sea lento. */
+  transition:
+    transform .12s ease,
+    background .12s ease,
+    border-color .12s ease,
+    box-shadow .12s ease,
+    filter .12s ease,
+    opacity .12s ease;
+}
+
+button:hover {
+  /* Aquí se levanta un pelín el botón y se refuerza el contraste para que se note el hover. */
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.18);
+  background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
+  box-shadow: 0 14px 26px rgba(0,0,0,.28);
+}
+
+button:active {
+  /* Aquí se vuelve a “bajar” el botón al hacer click y se baja un poco el brillo. */
+  transform: translateY(0px);
+  filter: brightness(.98);
+}
+
+button:disabled {
+  /* Aquí se deja claro visualmente que está desactivado y se quitan efectos para que no engañe. */
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Focus visible accesible */
+/* Aquí se mejora la accesibilidad: cuando se navega con teclado se ve un halo claro. */
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-soft), var(--focus);
+}
+
+/* ---------- Botón principal (Bailar/Parar) ---------- */
+/* Aquí se destaca el botón principal con el acento azul. */
+#btnToggle {
+  border-color: rgba(59,130,246,.35);
+  background: linear-gradient(180deg, rgba(59,130,246,.30), rgba(59,130,246,.10));
+}
+
+#btnToggle:hover {
+  /* Aquí se sube el borde para que el hover se sienta más “activo”. */
+  border-color: rgba(59,130,246,.55);
+}
+
+/* Si quieres un estilo “stop” cuando está en Parar:
+   (opcional) añade en JS una clase .is-playing al body o al botón */
+/* Aquí se deja preparado el estilo alternativo cuando el botón está en modo “parar” (rojo). */
+#btnToggle.is-playing {
+  border-color: rgba(255,59,48,.50);
+  background: linear-gradient(180deg, rgba(255,59,48,.26), rgba(255,59,48,.10));
+}
+
+/* ---------- Botones de cámaras ---------- */
+/* Aquí se ajustan los botones de cámara para que sean un pelín más compactos. */
+#camFront, #camRight, #camLeft, #camBack {
+  padding: 9px 10px;
+  font-weight: 800;
+}
+
+#camFront {
+  /* Aquí se marca “Front” con un verde suave para diferenciarlo sin romper la estética. */
+  border-color: rgba(16,185,129,.35);
+  background: linear-gradient(180deg, rgba(16,185,129,.18), rgba(255,255,255,.05));
+}
+
+#camBack {
+  /* Aquí se marca “Back” con rojo suave como referencia visual. */
+  border-color: rgba(255,59,48,.35);
+  background: linear-gradient(180deg, rgba(255,59,48,.18), rgba(255,255,255,.05));
+}
+
+/* ---------- Hint / Text ---------- */
+/* Aquí se estiliza el texto de ayuda para que sea discreto pero legible. */
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.hint b {
+  /* Aquí se refuerzan los trozos en negrita dentro del hint si se usan. */
+  color: rgba(255,255,255,.92);
+}
+
+code {
+  /* Aquí se da estilo a etiquetas tipo “código” para mostrarlas como una píldora. */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.25);
+  color: rgba(255,255,255,.90);
+}
+
+/* ---------- Badge opcional (si luego quieres meter estado dentro del panel) ---------- */
+/* Aquí se define un “badge” reutilizable por si se quiere mostrar estado (online, cargado, etc.). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.22);
+  color: rgba(255,255,255,.86);
+}
+
+.badge .dot {
+  /* Aquí se crea el puntito del badge y se le da un glow verde para indicar “OK”. */
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(16,185,129,.18);
+}
+
+/* ---------- Footer mini dentro del panel (por si lo quieres) ---------- */
+/* Aquí se prepara un mini footer por si se quiere meter info abajo del panel. */
+.ui-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  color: var(--muted-2);
+  font-size: 12px;
+}
+
+/* ---------- “Stage” decorativo (no toca el Three.js, solo estética) ---------- */
+/* Aquí se crea una viñeta encima de todo para dar sensación de escenario sin tocar la escena 3D. */
+.stage-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* Aquí se evita que bloquee clicks en el canvas o en el UI */
+  z-index: 2;
+  background:
+    radial-gradient(900px 600px at 50% 40%, transparent 55%, rgba(0,0,0,.35) 100%),
+    radial-gradient(1200px 900px at 50% 130%, rgba(0,0,0,.45), transparent 70%);
+  mix-blend-mode: multiply; /* Aquí se mezcla para oscurecer bordes sin tapar del todo */
+}
+
+/* Si quieres activarlo, añade <div class="stage-vignette"></div> en el HTML */
+
+/* ---------- Responsive ---------- */
+/* Aquí se adaptan tamaños y distribución cuando la pantalla es más estrecha. */
+@media (max-width: 720px) {
+  #ui {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  #ui h1 {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .row {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  button {
+    padding: 10px 10px;
+    border-radius: 12px;
+  }
+
+  #camFront, #camRight, #camLeft, #camBack {
+    /* Aquí se hace que los botones de cámara ocupen dos columnas en móvil mediano. */
+    flex: 1 1 calc(50% - 8px);
+  }
+}
+
+@media (max-width: 420px) {
+  #ui h1 {
+    font-size: 14px;
+  }
+
+  button {
+    /* Aquí se pone cada botón a ancho completo para que sea cómodo en pantallas muy pequeñas. */
+    width: 100%;
+  }
+
+  #camFront, #camRight, #camLeft, #camBack {
+    /* Aquí se fuerza una sola columna para las cámaras. */
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------- Preferencias de usuario ---------- */
+/* Aquí se respeta a gente que tiene animaciones reducidas en el sistema. */
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}
+
+/* ---------- Selección de texto (por si seleccionas hint) ---------- */
+/* Aquí se personaliza el color de selección para que encaje con el azul del tema. */
+::selection {
+  background: rgba(59,130,246,.35);
+}
+
+/* ---------- Scrollbars (por si en algún momento hay overflow en panel) ---------- */
+/* Aquí se dejan estilos de scroll por si el panel llega a necesitar scroll en algún momento. */
+#ui {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) rgba(0,0,0,.12);
+}
+
+#ui::-webkit-scrollbar {
+  width: 10px;
+}
+
+#ui::-webkit-scrollbar-track {
+  background: rgba(0,0,0,.12);
+  border-radius: 999px;
+}
+
+#ui::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,.12);
+}
+
+/* ---------- Extra: capa de “luces” sutiles para ambiente ---------- */
+/* Aquí se define una capa extra de glow para ambientar, pero se deja opcional. */
+.glow-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* Aquí se asegura que no “robe” interacción */
+  z-index: 1;
+  background:
+    radial-gradient(700px 500px at 18% 22%, rgba(59,130,246,.16), transparent 65%),
+    radial-gradient(600px 420px at 82% 25%, rgba(255,59,48,.11), transparent 65%),
+    radial-gradient(800px 500px at 50% 85%, rgba(16,185,129,.08), transparent 70%);
+  filter: saturate(1.05);
+  opacity: .95;
+}
+
+/* Si quieres activarlo, añade <div class="glow-layer"></div> en el HTML */
+
+/* ---------- Utilidades (por si luego amplías el UI) ---------- */
+/* Aquí se define un estilo tipo tecla (kbd) por si se muestran atajos en pantalla. */
+.kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.28);
+  color: rgba(255,255,255,.88);
+}
+
+/* Bloques informativos */
+/* Aquí se prepara un bloque de info por si se mete texto extra dentro del panel. */
+.info {
+  margin: 10px 0 0;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.20);
+  color: rgba(255,255,255,.80);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Separador */
+/* Aquí se deja un separador simple para dividir secciones en el panel si hiciera falta. */
+.hr {
+  height: 1px;
+  background: rgba(255,255,255,.10);
+  margin: 10px 0;
+  border: 0;
+}
+
+/* ---------- Fin ---------- */
