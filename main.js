@@ -1,4 +1,28 @@
-// Se importan los módulos principales de Three.js y algunos extras (controles, loader FBX y luces de área).
+/* =========================================================
+   ÍNDICE (comentarios guía)
+   =========================================================
+   1) Importaciones (Three.js)
+   2) UI (Interfaz y estado)
+   3) Motor Three.js (Renderer + escena)
+   4) Cámaras (Cámara + OrbitControls + presets)
+   5) Añadir Luces (Iluminación principal)
+   6) Escenario (Grupo ground + constantes ring)
+   7) Escenario (Estadio + posters de luz)
+   8) Boxeo (Construcción del ring)
+   9) Gradas (Público + bleachers)
+  10) Escenario (Construcción: estadio + ring + gradas)
+  11) Modelo (Medidas + encuadre)
+  12) Cámaras (Vistas: frente/detrás/izquierda/derecha)
+  13) Escenario (Alineación ring a los pies)
+  14) Carga (FBX + animación)
+  15) Movimiento e interacción (Bailar/Parar)
+  16) Cámaras (Interacción botones)
+  17) Render (Resize + loop)
+   ========================================================= */
+
+/* =========================================================
+   Importaciones (Three.js)
+   ========================================================= */// Se importan los módulos principales de Three.js y algunos extras (controles, loader FBX y luces de área). 
 import * as THREE from "three";
 import { OrbitControls } from "jsm/controls/OrbitControls.js";
 import { FBXLoader } from "jsm/loaders/FBXLoader.js";
@@ -7,6 +31,9 @@ import { RectAreaLightUniformsLib } from "jsm/lights/RectAreaLightUniformsLib.js
 // Aquí se deja la ruta del modelo FBX para tenerla centralizada y fácil de cambiar.
 const FBX_PATH = "./assets/models/hiphopdavid.fbx";
 
+/* =========================================================
+   UI (Interfaz y estado)
+   ========================================================= */
 // ===== UI =====
 // Se capturan los elementos del HTML para controlar el botón principal y los botones de cámara.
 const btnToggle = document.querySelector("#btnToggle");
@@ -32,6 +59,9 @@ btnToggle.disabled = true;
 btnToggle.textContent = "Cargando...";
 [camFront, camRight, camLeft, camBack].forEach((b) => (b.disabled = true));
 
+/* =========================================================
+   Motor Three.js (Renderer + escena)
+   ========================================================= */
 // ===== THREE =====
 // Se inicializa el soporte de shaders para RectAreaLight (si no, estas luces no funcionan bien).
 RectAreaLightUniformsLib.init();
@@ -52,6 +82,9 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05060a);
 scene.fog = new THREE.Fog(0x05060a, 8, 45);
 
+/* =========================================================
+   Cámaras (Cámara + OrbitControls + presets)
+   ========================================================= */
 // Cámara
 // Se usa una cámara en perspectiva típica para escenas 3D con una distancia de recorte amplia.
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 600);
@@ -65,6 +98,9 @@ controls.maxPolarAngle = Math.PI / 2;
 controls.minDistance = 2.0;
 controls.maxDistance = 22.0;
 
+/* =========================================================
+   Añadir Luces (Iluminación principal)
+   ========================================================= */
 // ===== LUCES (TODAS BLANCAS) =====
 // Luz ambiente para que nada quede completamente negro.
 scene.add(new THREE.AmbientLight(0xffffff, 0.72));
@@ -106,6 +142,9 @@ const rim = new THREE.PointLight(0xffffff, 1.00, 70);
 rim.position.set(0, 4.5, -18);
 scene.add(rim);
 
+/* =========================================================
+   Escenario (Grupo ground: todo el mundo dentro)
+   ========================================================= */
 // ===== Grupo mundo (TODO dentro) =====
 // Se mete todo lo “del suelo” en un grupo para poder subir/bajar el conjunto de una sola vez.
 const ground = new THREE.Group();
@@ -117,6 +156,9 @@ const RING_TOP_Y = 0.355;    // altura lona respecto a ground
 const GROUND_NUDGE = 0.87;   // - tu valor
 let baseGroundY = 0;         // - una sola vez
 
+/* =========================================================
+   Escenario (Estadio + posters de luz)
+   ========================================================= */
 // ===== Helpers: Posters de luz (sin ruido) =====
 // Este helper crea un “poster” emisivo + su marco + una RectAreaLight real apuntando al centro.
 function addLightPoster(parent, {
@@ -291,6 +333,9 @@ function createCompactStadiumWithPosters() {
   return stadium;
 }
 
+/* =========================================================
+   Boxeo (Construcción del ring)
+   ========================================================= */
 // ===== RING =====
 // Esta función arma el ring completo: suelo, plataforma, lona, cuerdas y esquineros.
 function createBoxingRing() {
@@ -454,6 +499,9 @@ function createBoxingRing() {
   return ring;
 }
 
+/* =========================================================
+   Gradas (Público + bleachers)
+   ========================================================= */
 // ===== GRADAS + CROWD =====
 // Aquí se montan gradas simples alrededor y se rellena con público instanciado para rendimiento.
 function createBleachersAndCrowd() {
@@ -664,12 +712,18 @@ function createBleachersAndCrowd() {
   grp.add(torsos, legs, heads);
 }
 
+/* =========================================================
+   Escenario (Construcción: estadio + ring + gradas)
+   ========================================================= */
 // ===== Construcción escena =====
 // Se construye el estadio, ring y público antes de cargar el personaje.
 createCompactStadiumWithPosters();
 createBoxingRing();
 createBleachersAndCrowd();
 
+/* =========================================================
+   Modelo (Medidas + encuadre)
+   ========================================================= */
 // ===== Utils modelo =====
 // tmpBox se reutiliza para evitar crear objetos nuevos cada frame.
 const tmpBox = new THREE.Box3();
@@ -709,6 +763,9 @@ function autoFrameObject(obj) {
   return { center: sphere.center.clone(), radius: Math.max(sphere.radius, 0.001), faceY: faceYLocal, height: h };
 }
 
+/* =========================================================
+   Cámaras (Vistas: frente/detrás/izquierda/derecha)
+   ========================================================= */
 // Cambia la cámara a una vista concreta (frente, detrás, izquierda, derecha) con distancia calculada.
 function setCameraView(view) {
   const distByRadius = modelRadius * 2.7;
@@ -730,6 +787,9 @@ function setCameraView(view) {
   controls.update();
 }
 
+/* =========================================================
+   Escenario (Alineación ring a los pies)
+   ========================================================= */
 // - Subir TODO el mundo para que el ring quede al ras del pie
 // Esta función calcula el minY del modelo y ajusta el grupo ground para alinearlo con la lona.
 function lockRingToFeetOnce(obj) {
@@ -741,6 +801,9 @@ function lockRingToFeetOnce(obj) {
   ground.position.y = baseGroundY;
 }
 
+/* =========================================================
+   Carga (FBX + animación)
+   ========================================================= */
 // ===== Carga FBX =====
 // Se crea el loader para importar el modelo y su animación.
 const loader = new FBXLoader();
@@ -828,6 +891,9 @@ loader.load(
   }
 );
 
+/* =========================================================
+   Movimiento e interacción (Bailar/Parar)
+   ========================================================= */
 // Toggle play/pause
 // El botón alterna entre pausar y reanudar la animación sin reiniciar el clip.
 btnToggle.addEventListener("click", () => {
@@ -846,6 +912,9 @@ btnToggle.addEventListener("click", () => {
   }
 });
 
+/* =========================================================
+   Cámaras (Interacción botones)
+   ========================================================= */
 // Cámaras
 // Cada botón llama a setCameraView con la vista correspondiente.
 camFront.addEventListener("click", () => setCameraView("front"));
@@ -853,6 +922,9 @@ camBack.addEventListener("click", () => setCameraView("back"));
 camLeft.addEventListener("click", () => setCameraView("left"));
 camRight.addEventListener("click", () => setCameraView("right"));
 
+/* =========================================================
+   Render (Resize + loop)
+   ========================================================= */
 // Resize
 // Se actualiza renderer y aspect de cámara para que el canvas no se deforme.
 function onResize() {
