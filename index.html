@@ -42,45 +42,68 @@
         border-radius: 12px; /* Bordes redondeados estilo panel */
         background: rgba(0, 0, 0, 0.45); /* Fondo semi-transparente para leer sin tapar del todo */
         color: #fff; /* Texto en blanco para contraste */
-        backdrop-filter: blur(6px); /* Efecto de desenfoque para que el panel se vea más “pro” */
-        max-width: 420px; /* Se limita el ancho para que no ocupe media pantalla */
+        backdrop-filter: blur(6px); /* Efecto de desenfoque */
+        max-width: 420px; /* Se limita el ancho */
       }
 
       #ui h1 {
-        margin: 0 0 10px; /* Se deja un poco de aire debajo del título */
-        font-size: 16px; /* Tamaño compacto para el panel */
+        margin: 0 0 10px; /* Aire debajo del título */
+        font-size: 16px; /* Tamaño compacto */
       }
 
       .row {
-        display: flex; /* Se alinea el contenido en fila */
-        gap: 8px; /* Separación entre botones */
-        flex-wrap: wrap; /* Si no caben, se bajan a la siguiente línea */
-        margin-bottom: 10px; /* Espacio inferior entre filas */
+        display: flex; /* Contenido en fila */
+        gap: 8px; /* Separación */
+        flex-wrap: wrap; /* Wrap si no caben */
+        margin-bottom: 10px; /* Espacio inferior */
+        align-items: center; /* Centrado vertical (para slider) */
       }
 
       button {
-        border: 0; /* Se quita el borde por defecto del navegador */
-        padding: 8px 10px; /* Botón con tamaño cómodo para clicar */
-        border-radius: 10px; /* Estética redondeada */
-        cursor: pointer; /* Cursor de mano para indicar interacción */
-        font-weight: 700; /* Se pone el texto un poco más marcado */
+        border: 0; /* Sin borde */
+        padding: 8px 10px; /* Tamaño cómodo */
+        border-radius: 10px; /* Redondeo */
+        cursor: pointer; /* Mano */
+        font-weight: 700; /* Texto marcado */
       }
 
       button:disabled {
-        opacity: 0.6; /* Se nota que está desactivado sin desaparecer */
-        cursor: not-allowed; /* Cursor que avisa de que no se puede pulsar */
+        opacity: 0.6; /* Se nota desactivado */
+        cursor: not-allowed;
       }
 
       .hint {
-        margin: 0; /* Se evita margen extra que descoloque el panel */
-        font-size: 12px; /* Texto pequeño tipo ayuda */
-        opacity: 0.85; /* Un poco más suave para que no compita con los botones */
-        line-height: 1.35; /* Se mejora la lectura en dos líneas si hiciera falta */
+        margin: 0;
+        font-size: 12px;
+        opacity: 0.85;
+        line-height: 1.35;
       }
 
-      code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; /* Fuente monoespaciada para fragmentos de código */
-        font-size: 11px; /* Tamaño discreto para no destacar demasiado */
+      /* NUEVO: Control de luminosidad (slider) */
+      .light-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .light-wrap strong {
+        font-size: 12px;
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+
+      #lightLevel {
+        flex: 1;
+        cursor: pointer;
+      }
+
+      #lightValue {
+        font-size: 12px;
+        opacity: 0.9;
+        min-width: 54px;
+        text-align: right;
+        white-space: nowrap;
       }
     </style>
 
@@ -96,16 +119,16 @@
   </head>
 
   <body>
-    <!-- Panel de interfaz: aquí se dejan los botones y la ayuda para manejar la cámara -->
+    <!-- Panel de interfaz -->
     <div id="ui">
       <h1>David – Baile + 4 Cámaras</h1>
 
-      <!-- Botón principal: empieza desactivado hasta que cargue la escena -->
+      <!-- Botón principal -->
       <div class="row">
         <button id="btnToggle" type="button" disabled>Cargando...</button>
       </div>
 
-      <!-- Botones de cámara: también se bloquean al inicio para evitar clicks antes de tiempo -->
+      <!-- Botones de cámara -->
       <div class="row">
         <button id="camFront" type="button" disabled>Frente</button>
         <button id="camRight" type="button" disabled>Derecha</button>
@@ -113,16 +136,24 @@
         <button id="camBack" type="button" disabled>Detrás</button>
       </div>
 
-      <!-- Texto de ayuda rápido para los controles del ratón -->
+      <!-- NUEVO: Slider de luz (ratón + rueda sobre el slider) -->
+      <div class="row">
+        <div class="light-wrap" title="Arrastra el slider o usa la rueda del ratón encima">
+          <strong>💡 Luz</strong>
+          <input id="lightLevel" type="range" min="20" max="250" step="5" value="100" disabled />
+          <span id="lightValue">100%</span>
+        </div>
+      </div>
+
       <p class="hint">
-        Arrastra para rotar · Rueda para zoom
+        Arrastra para rotar · Rueda para zoom · <b>WASD</b> para moverte por el ring
       </p>
     </div>
 
-    <!-- Canvas donde se renderiza todo lo de Three.js -->
+    <!-- Canvas -->
     <canvas id="c"></canvas>
 
-    <!-- Se carga el JavaScript principal como módulo para poder usar imports -->
+    <!-- Volvemos a cargar main.js (sin boot) -->
     <script type="module" src="main.js"></script>
   </body>
 </html>
